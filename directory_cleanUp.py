@@ -11,7 +11,8 @@ def handle_dups(path,filenames):
     if not os.path.exists(duppath):
         os.mkdir(duppath)
     for filename in filenames:
-        file_subset = glob.glob(os.path.join(path, filename) + '*')
+        f = replace('the ','*',filename.replace('.','*').replace(' ','*')) + '*'
+        file_subset = glob.glob(os.path.join(path, f))
         if len(file_subset) > 1:
             dupfiles = []
             for name in file_subset:
@@ -22,6 +23,12 @@ def handle_dups(path,filenames):
                 src = os.path.join(path,f['name'])
                 os.rename(src,dst)
                 print('moving dup: ',src,'->',dst)
+
+def replace(old, new, str, caseinsentive = False):
+    if caseinsentive:
+        return str.replace(old, new)
+    else:
+        return re.sub(re.escape(old), new, str, flags=re.IGNORECASE)
 
 def trim_filename(name):
     if len(name) > 6:
@@ -61,12 +68,12 @@ def rename_files(path):
                         if not os.path.exists(path + finalname):
                             print("renaming: " + fname + " -> " + finalname)
                             os.rename(path + fname,path + finalname)
-                            filenames.append(trim_filename(finalname).replace('.',''))
+                            filenames.append(trim_filename(finalname))
                         else:
                             print('problem: ' + fname +' ->  ' + finalname)
                     else:
                         print('done: ' + fname)
-                        filenames.append(trim_filename(fname).replace('.',''))
+                        filenames.append(trim_filename(fname))
                 else:
                     if not os.path.exists(os.path.join(otherpath,entry.name)):
                         print('moving: ' + os.path.join(path,entry.name + "-> " + os.path.join(otherpath,entry.name)))
