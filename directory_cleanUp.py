@@ -7,14 +7,21 @@ import glob
 
 def handle_dups(path,filenames):
     filenames.sort(key=trim_filename)
+    duppath = os.path.join(path,"dups")
+    if not os.path.exists(duppath):
+        os.mkdir(duppath)
     for filename in filenames:
-        print('-----')
         file_subset = glob.glob(os.path.join(path, filename) + '*')
         if len(file_subset) > 1:
             dupfiles = []
             for name in file_subset:
-                dupfiles.append({'name':name, 'size':os.stat(name).st_size})
-            print(sorted(dupfiles, key=lambda x: x['size'],reverse=True))
+                dupfiles.append({'name':os.path.basename(name), 'size':os.stat(name).st_size})
+            dupfiles = sorted(dupfiles, key=lambda x: x['size'],reverse=True)[1:]
+            for f in dupfiles:
+                dst = os.path.join(path,duppath,f['name'])
+                src = os.path.join(path,f['name'])
+                os.rename(src,dst)
+                print('moving dup: ',src,'->',dst)
 
 def trim_filename(name):
     if len(name) > 6:
