@@ -32,11 +32,20 @@ def replace(old, new, str, caseinsentive = False):
     else:
         return re.sub(re.escape(old), new, str, flags=re.IGNORECASE)
 
-def trim_filename(name):
+def trim_filename(in_name):
+    name = in_name
     if len(name) > 6:
-        name = name[:-8]
-    elif len(name) > 3:
-        name = name[:-4]
+        if name[:-7].endswith('.'):
+            name = name[:-8]
+        elif name[:-5].endswith('.'):
+            name = name[:-4]
+    return name
+
+def get_extension(in_name):
+    name = in_name
+    if len(name) > 6:
+        if name[:-3].endswith('.'):
+            name = name[len(name)-4:]
     return name
 
 def rename_files(path):
@@ -56,6 +65,17 @@ def rename_files(path):
                                 if not os.path.isdir(os.path.join(path,entry.name)):
                                     cleanup_names(path, filenames, otherpath, cleanlog, entry, movelog, problemlog, completedlog)
     return list(set(filenames))
+
+def cleanup_extensions(path):
+    with os.scandir(path) as entries:
+        with open('renamed.txt', 'w') as renamelog:
+            for entry in entries:
+                if not os.path.isdir(os.path.join(path,entry.name)):
+                    new_name = os.path.join(path,trim_filename(entry.name) + get_extension(entry.name))
+                    old_name = os.path.join(path,entry.name)
+                    os.rename(old_name,new_name)
+                    renamelog.write('Renaming: ' + old_name + ' -> ' + new_name + '\n')
+
 
 def cleanup_names(path, filenames, otherpath, cleanlog, entry, movelog, problemlog, completedlog):
     if "(j)" not in entry.name.lower():
@@ -107,6 +127,8 @@ def main():
     path = "/home/pete/Downloads/RomsCopy/test/"
     filenames = rename_files(path)
     handle_dups(path,filenames)
+    cleanup_extensions(path)
+
 
 if __name__ == "__main__":
     main()
