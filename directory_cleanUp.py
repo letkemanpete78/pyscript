@@ -13,18 +13,26 @@ def handle_dups(path,filenames):
             os.mkdir(duppath)
             duplog.write('Created directory: ' + duppath + "\n")
         for filename in filenames:
-            f = replace('the ','*',filename.replace('.','*').replace(' ','*')) + '*'
+            file_subset = None
+            if filename == '':
+                continue
+            f = replace('the ','????',filename.strip())
+            f = replace(' the','????',f)
+            f = f.replace('.','?').replace(' ','?') + '?*'
+            while ('?????' in f):
+                f = f.replace('?????','????')
             file_subset = glob.glob(os.path.join(path, f))
             if len(file_subset) > 1:
                 dupfiles = []
                 for name in file_subset:
                     dupfiles.append({'name':os.path.basename(name), 'size':os.stat(name).st_size})
                 dupfiles = sorted(dupfiles, key=lambda x: x['size'],reverse=True)[1:]
-                for f in dupfiles:
+                for f in dupfiles[1:]:
                     dst = os.path.join(path,duppath,f['name'])
                     src = os.path.join(path,f['name'])
-                    os.rename(src,dst)
-                    duplog.write('moving dup: ' + src + ' -> ' + dst + "\n")
+                    if not os.path.isdir(dst) and not os.path.isdir(src):
+                        os.rename(src,dst)
+                        duplog.write('moving dup: ' + src + ' -> ' + dst + "\n")
 
 def replace(old, new, str, caseinsentive = False):
     if caseinsentive:
@@ -71,8 +79,10 @@ def cleanup_extensions(path):
         with open('renamed.txt', 'w') as renamelog:
             for entry in entries:
                 if not os.path.isdir(os.path.join(path,entry.name)):
-                    new_name = os.path.join(path,trim_filename(entry.name) + get_extension(entry.name))
-                    old_name = os.path.join(path,entry.name)
+                    ext = get_extension(entry.name).strip()
+                    new_name = os.path.join(path,trim_filename(entry.name).strip() + ext)
+                    new_name = replace(ext + ext,ext,new_name)
+                    old_name = os.path.join(path,entry.name.strip())
                     os.rename(old_name,new_name)
                     renamelog.write('Renaming: ' + old_name + ' -> ' + new_name + '\n')
 
@@ -94,7 +104,7 @@ def cleanup_filenames(path, filenames, cleanlog, fname, completedlog, problemlog
         finalname = 'The ' + replace('the.','',finalname,True)
     finalname = finalname.replace("  "," ").strip()
     if finalname != fname:
-        filenames.append(try_rename(path, cleanlog, fname, finalname, problemlog))
+        filenames.append(try_rename(path, cleanlog, fname, finalname))
     else:
         completedlog.write('done: ' + fname + "\n")
         filenames.append(trim_filename(fname))
@@ -114,21 +124,20 @@ def space_before_num(newname):
             firstdigit = True
     return finalname
 
-def try_rename(path, cleanlog, fname, finalname, problemlog):
+def try_rename(path, cleanlog, fname, finalname):
     if not os.path.exists(path + finalname):
-        cleanlog.write("renaming: " + fname + " -> " + finalname + "\n")
+        cleanlog.write("renaming: " + path + fname + " -> " + path + finalname + "\n")
         os.rename(path + fname,path + finalname)
         return trim_filename(finalname)
     else:
-        problemlog.write('problem: ' + fname + '->' + finalname +"\n")
+        cleanlog.write('not renaming: ' + fname + "\n")
         return ''
 
 def main():
-    path = "/home/pete/Downloads/RomsCopy/test/"
+    path = "/home/pete/Downloads/RomsCopy/SNES Roms (copy)/"
     filenames = rename_files(path)
     handle_dups(path,filenames)
     cleanup_extensions(path)
-
 
 if __name__ == "__main__":
     main()
