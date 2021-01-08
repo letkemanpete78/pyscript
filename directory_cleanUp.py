@@ -11,7 +11,7 @@ def handle_dups(path,filenames):
     with open('dups.txt', 'w') as duplog:
         if not os.path.exists(duppath):
             os.mkdir(duppath)
-            duplog.write('Created directory:',duppath)
+            duplog.write('Created directory: ' + duppath + "\n")
         for filename in filenames:
             f = replace('the ','*',filename.replace('.','*').replace(' ','*')) + '*'
             file_subset = glob.glob(os.path.join(path, f))
@@ -24,7 +24,7 @@ def handle_dups(path,filenames):
                     dst = os.path.join(path,duppath,f['name'])
                     src = os.path.join(path,f['name'])
                     os.rename(src,dst)
-                    duplog.write('moving dup:',src,'->',dst ,"\n")
+                    duplog.write('moving dup: ' + src + ' -> ' + dst + "\n")
 
 def replace(old, new, str, caseinsentive = False):
     if caseinsentive:
@@ -44,33 +44,43 @@ def rename_files(path):
     otherpath = os.path.join(path,"Other")
 
     with open('cleanup.txt', 'w') as cleanlog:
-        if not os.path.exists(otherpath):
-            os.mkdir(otherpath)
-            cleanlog.write('Created directory',otherpath,"\n")
-        with os.scandir(path) as entries:
-            for entry in entries:
-                if not os.path.isdir(os.path.join(path,entry.name)):
-                    if "(j)" not in entry.name.lower():
-                        fname = entry.name
-                        newname = re.sub('\([a-zA-Z!@#$%^&*\[\]]*\)','',fname).lower().replace(' .','.').title().replace('(','').replace(')','').replace(',','.').replace('-',' ').replace('_',' ')
-                        finalname = space_before_num(newname)
-                        if ' the.' in fname.lower():
-                            finalname = 'The ' + replace('the.','',finalname,True)
-                        finalname = finalname.replace("  "," ").strip()
-                        if finalname != fname:
-                            filenames.append(try_rename(path, cleanlog, fname, finalname))
-                        else:
-                            completedlog.write('done:',fname,"\n")
-                            filenames.append(trim_filename(fname))
-                    else:
-                        if not os.path.exists(os.path.join(otherpath,entry.name)):
-                            movelog.write('moving:',os.path.join(path,entry.name,"->",os.path.join(otherpath,entry.name)),"\n")
-                            os.rename(os.path.join(path,entry.name), os.path.join(otherpath,entry.name))
-                        else:
-                            problemlog.write('problem-other:',entry.name,"\n")
+        with open('movelog.txt','w') as movelog:
+            with open('problemlog.txt','w') as problemlog:
+                with open('completedlog.txt','w') as completedlog:
+                    with open('problemlog.txt','w') as problemlog:
+                        if not os.path.exists(otherpath):
+                            os.mkdir(otherpath)
+                            cleanlog.write('Created directory ' + otherpath + "\n")
+                        with os.scandir(path) as entries:
+                            for entry in entries:
+                                if not os.path.isdir(os.path.join(path,entry.name)):
+                                    cleanup_names(path, filenames, otherpath, cleanlog, entry, movelog, problemlog, completedlog)
     return list(set(filenames))
 
+def cleanup_names(path, filenames, otherpath, cleanlog, entry, movelog, problemlog, completedlog):
+    if "(j)" not in entry.name.lower():
+        cleanup_filenames(path, filenames, cleanlog, entry.name, completedlog, problemlog)
+    else:
+        if not os.path.exists(os.path.join(otherpath,entry.name)):
+            movelog.write('moving: '+ os.path.join(path,entry.name +" -> " + os.path.join(otherpath,entry.name)) + "\n")
+            os.rename(os.path.join(path,entry.name), os.path.join(otherpath,entry.name))
+        else:
+            problemlog.write('problem-other: ' + entry.name + "\n")
+
+def cleanup_filenames(path, filenames, cleanlog, fname, completedlog, problemlog):
+    newname = re.sub('\([a-zA-Z!@#$%^&*\[\]]*\)','',fname).lower().replace(' .','.').title().replace('(','').replace(')','').replace(',','.').replace('-',' ').replace('_',' ')
+    finalname = space_before_num(newname)
+    if ' the.' in fname.lower():
+        finalname = 'The ' + replace('the.','',finalname,True)
+    finalname = finalname.replace("  "," ").strip()
+    if finalname != fname:
+        filenames.append(try_rename(path, cleanlog, fname, finalname, problemlog))
+    else:
+        completedlog.write('done: ' + fname + "\n")
+        filenames.append(trim_filename(fname))
+
 def space_before_num(newname):
+    finalname = ''
     firstdigit = True
     for c in newname:
         if c.isdigit():
@@ -84,13 +94,13 @@ def space_before_num(newname):
             firstdigit = True
     return finalname
 
-def try_rename(path, cleanlog, fname, finalname):
+def try_rename(path, cleanlog, fname, finalname, problemlog):
     if not os.path.exists(path + finalname):
         cleanlog.write("renaming: " + fname + " -> " + finalname + "\n")
         os.rename(path + fname,path + finalname)
         return trim_filename(finalname)
     else:
-        problemlog.write('problem:',fname,'->',finalname,"\n")
+        problemlog.write('problem: ' + fname + '->' + finalname +"\n")
         return ''
 
 def main():
