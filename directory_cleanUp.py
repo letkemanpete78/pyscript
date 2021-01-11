@@ -68,6 +68,24 @@ def handle_beta(path):
                     os.rename(entry.path,os.path.join(betapath,entry.name))
                     betalog.write (entry.path + " -> " + os.path.join(betapath,entry.name) + '\n')
 
+def handle_brackets(path):
+    duppath = os.path.join(path,"dups")
+    if not os.path.exists(duppath):
+        os.mkdir(duppath)
+    with open('bracket.txt', 'w') as bracketlog:
+        with os.scandir(path) as entries:
+            for entry in entries:
+                newname = re.search(' \(([a-zA-Z])*\)| \[!]',entry.name, flags=re.IGNORECASE)
+                if newname != None:
+                    t = os.path.join(path, entry.name.replace(newname.group(0),''))
+                    if not os.path.exists(t):
+                        os.rename(entry.path,t)
+                        bracketlog.write('renaming: ' + entry.path  + ' -> '+  t)
+                    else:
+                        t = os.path.join(duppath,entry.name)
+                        os.rename(entry.path,t)
+                        bracketlog.write('moving:' + entry.path + ' -> ' + t)
+
 def rename_files(path):
     filenames = []
     otherpath = os.path.join(path,"Other")
@@ -87,7 +105,7 @@ def rename_files(path):
                                     cleanup_names(path, filenames, otherpath, cleanlog, entry, movelog, problemlog, completedlog)
     return list(set(filenames))
 
-def cleanup_extensions(path):
+def cleanup_prefix_suffix(path):
     with os.scandir(path) as entries:
         with open('renamed.txt', 'w') as renamelog:
             for entry in entries:
@@ -95,6 +113,8 @@ def cleanup_extensions(path):
                     ext = get_extension(entry.name).strip()
                     new_name = os.path.join(path,trim_filename(entry.name).strip() + ext)
                     new_name = replace(ext + ext,ext,new_name)
+                    while 'the the' in new_name.lower():
+                        new_name = replace('the ','',new_name)
                     old_name = os.path.join(path,entry.name.strip())
                     os.rename(old_name,new_name)
                     renamelog.write('Renaming: ' + old_name + ' -> ' + new_name + '\n')
@@ -148,10 +168,11 @@ def try_rename(path, cleanlog, fname, finalname):
 
 def main():
     path = "/home/pete/Downloads/RomsCopy/SNES Roms/"
-    # filenames = rename_files(path)
-    # handle_dups(path,filenames)
-    # cleanup_extensions(path)
     handle_beta(path)
-
+    handle_brackets(path)
+    filenames = rename_files(path)
+    handle_dups(path,filenames)
+    cleanup_prefix_suffix(path)
+    
 if __name__ == "__main__":
     main()
