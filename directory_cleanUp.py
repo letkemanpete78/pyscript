@@ -56,10 +56,23 @@ def get_extension(in_name):
             name = name[len(name)-4:]
     return name
 
+def handle_beta(path):
+    betapath = os.path.join(path,"Beta")
+    if not os.path.exists(betapath):
+        os.mkdir(betapath)
+    with open('beta.txt', 'w') as betalog:
+        with os.scandir(path) as entries:
+            for entry in entries:
+                newname = re.search('\(beta*\)',entry.name, flags=re.IGNORECASE)
+                if newname != None:
+                    os.rename(entry.path,os.path.join(betapath,entry.name))
+                    betalog.write (entry.path + " -> " + os.path.join(betapath,entry.name) + '\n')
+
 def rename_files(path):
     filenames = []
     otherpath = os.path.join(path,"Other")
-
+    if not os.path.exists(otherpath):
+        os.mkdir(otherpath)
     with open('cleanup.txt', 'w') as cleanlog:
         with open('movelog.txt','w') as movelog:
             with open('problemlog.txt','w') as problemlog:
@@ -134,10 +147,11 @@ def try_rename(path, cleanlog, fname, finalname):
         return ''
 
 def main():
-    path = "/home/pete/Downloads/RomsCopy/SNES Roms (copy)/"
-    filenames = rename_files(path)
-    handle_dups(path,filenames)
-    cleanup_extensions(path)
+    path = "/home/pete/Downloads/RomsCopy/SNES Roms/"
+    # filenames = rename_files(path)
+    # handle_dups(path,filenames)
+    # cleanup_extensions(path)
+    handle_beta(path)
 
 if __name__ == "__main__":
     main()
