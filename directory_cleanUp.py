@@ -54,7 +54,7 @@ def get_extension(in_name):
     if len(name) > 6:
         if name[:-3].endswith('.'):
             name = name[len(name)-4:]
-    return name
+    return name.lower()
 
 def handle_beta(path):
     betapath = os.path.join(path,"Beta")
@@ -115,6 +115,8 @@ def cleanup_prefix_suffix(path):
                     new_name = replace(ext + ext,ext,new_name)
                     while 'the the' in new_name.lower():
                         new_name = replace('the ','',new_name)
+                    while '  ' in new_name:
+                        new_name = new_name.replace('  ',' ')
                     old_name = os.path.join(path,entry.name.strip())
                     os.rename(old_name,new_name)
                     renamelog.write('Renaming: ' + old_name + ' -> ' + new_name + '\n')
@@ -169,10 +171,10 @@ def try_rename(path, cleanlog, fname, finalname):
 def main():
     path = "/home/pete/Downloads/RomsCopy/SNES Roms/"
     handle_beta(path)
-    handle_brackets(path)
+    
     filenames = rename_files(path)
     handle_dups(path,filenames)
     cleanup_prefix_suffix(path)
-    
+    handle_brackets(path)
 if __name__ == "__main__":
     main()
